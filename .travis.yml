@@ -1,0 +1,45 @@
+sudo: required
+
+dist: trusty
+
+language: node_js
+
+node_js:
+  - '0.12'
+  - '4'
+  - '5'
+  - '6'
+
+cache:
+  directories:
+  - node_modules/
+  - packages/*/node_modules
+
+addons:
+  apt:
+    sources:
+    - sourceline: 'deb http://packages.prosody.im/debian trusty main'
+      key_url: 'https://prosody.im/files/prosody-debian-packages.key'
+    packages:
+    - prosody-0.10
+    - lua-bitop # websocket
+    - lua-sec # tls
+
+before_install:
+  - sudo service prosody stop
+  - sudo cp test/resources/prosody.cfg.lua /etc/prosody/prosody.cfg.lua
+  - sudo cp test/resources/localhost.crt /var/lib/prosody/
+  - sudo cp test/resources/localhost.key /var/lib/prosody/
+
+script:
+  - npm run test
+
+  - nohup python2 -m SimpleHTTPServer &
+
+  - sudo prosodyctl start
+  - npm run integration
+  - sudo prosodyctl restart
+  - npm run bundle
+  - npm run test:browser
+
+# after_script: npm run coveralls
